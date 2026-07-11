@@ -82,7 +82,6 @@ st.sidebar.write("• Daily meal planning")
 
 base_dir = os.path.dirname(__file__) or os.getcwd()
 default_dataset_paths = [
-    r"c:\Users\FLS\Downloads\bd_food_nutrition_dataset.csv",
     os.path.join(base_dir, "bd_food_nutrition_dataset.csv"),
     os.path.join(base_dir, "data", "bd_food_nutrition_dataset.csv"),
 ]
@@ -351,15 +350,29 @@ def generate_recipe(food_name, df):
     if not ingredient_list:
         ingredient_list = [row["food_name"]]
 
-    cooking_time = max(15, min(35, 10 + len(ingredient_list) * 3))
+    cooking_time = max(12, min(40, 8 + len(ingredient_list) * 2 + int(row.get('calories', 0) / 80)))
+    style = 'stir-fry'
+    if any(word in row['food_name'].lower() for word in ['curry', 'bhuna', 'masala', 'korma']):
+        style = 'simmer'
+    elif any(word in row['food_name'].lower() for word in ['roast', 'baked', 'grilled', 'tandoori']):
+        style = 'roast'
+    elif any(word in row['food_name'].lower() for word in ['salad', 'chutney', 'raita']):
+        style = 'mix'
+    elif any(word in row['food_name'].lower() for word in ['soup', 'shorba']):
+        style = 'simmer'
+
+    ingredient_text = ', '.join(ingredient_list[:5])
+    if len(ingredient_list) > 5:
+        ingredient_text += ', and more'
+
     steps = [
-        f"1. Heat a pan and add a little oil.",
-        f"2. Add the main ingredients: {', '.join(ingredient_list[:4])}.",
-        f"3. Add spices, salt, and any preferred herbs, then cook until tender.",
-        f"4. Simmer gently for a few minutes so the flavors blend well.",
-        f"5. Serve hot with rice, bread, or salad if desired."
+        f"1. Gather the ingredients for {row['food_name']}: {ingredient_text}.",
+        f"2. Prepare the ingredients by chopping, marinating, or seasoning them to suit the dish.",
+        f"3. In a pan or pot, {style} the ingredients for {row['food_name']} until their aromas are released.",
+        f"4. Add liquid, spices, or sauce and cook until the dish has the right texture and flavor.",
+        f"5. Finish the {row['food_name']} with fresh herbs or chutney and serve warm."
     ]
-    return f"Cooking time: {cooking_time} minutes\n\n" + "\n".join(steps)
+    return f"Recipe for {row['food_name']}\nCooking time: {cooking_time} minutes\n\n" + "\n".join(steps)
 
 
 def build_meal_plan(target_calories, condition, df):
@@ -399,7 +412,9 @@ dataset = load_food_dataset(None)
 cleaned_dataset = clean_food_dataset(dataset)
 
 if cleaned_dataset.empty:
-    st.info("No dataset was found. Please make sure the food dataset is available in the app folder.")
+    st.error(
+        "No dataset was found. Add a file named `bd_food_nutrition_dataset.csv` to the project root or `data/` folder and push it to GitHub."
+    )
     st.stop()
 
 st.markdown("<div class='section-title'>1. Nutrition Analysis</div>", unsafe_allow_html=True)
